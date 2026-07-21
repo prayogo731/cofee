@@ -183,6 +183,39 @@
     color:var(--bg); background:var(--orange); border-color:var(--orange);
   }
 
+  /* SEARCH */
+  .search-row{ padding:14px 16px 0; }
+  .search-box{
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface); border:1px solid var(--surface-line);
+    border-radius:12px; padding:11px 14px;
+    max-width:520px; margin:0 auto;
+    transition:border-color .15s ease;
+  }
+  .search-box:focus-within{ border-color:var(--orange); }
+  .search-icon{ font-size:14px; opacity:.7; flex:0 0 auto; }
+  .search-box input{
+    flex:1; background:none; border:none; outline:none;
+    color:var(--cream); font-family:'Work Sans',sans-serif; font-size:14px;
+  }
+  .search-box input::placeholder{ color:var(--muted); }
+  .search-clear{
+    flex:0 0 auto; background:none; border:none; color:var(--muted);
+    cursor:pointer; font-size:14px; padding:2px 4px; line-height:1;
+  }
+  .search-clear:hover{ color:var(--red); }
+  .search-count{
+    text-align:center; font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    color:var(--muted); margin-top:8px; letter-spacing:.05em;
+  }
+  .no-results{
+    text-align:center; padding:80px 20px; color:var(--muted);
+  }
+  .no-results .nr-icon{ font-size:34px; display:block; margin-bottom:12px; }
+  .no-results .nr-title{ color:var(--cream); font-size:18px; font-weight:600; margin-bottom:6px; }
+  .no-results .nr-sub{ font-size:13.5px; }
+  .ticket.hide, section.category.hide{ display:none !important; }
+
   main{ max-width:1100px; margin:0 auto; padding:10px 18px 0; }
 
   section.category{ padding:52px 0 10px; scroll-margin-top:76px; }
@@ -458,6 +491,13 @@
 </section>
 
 <nav class="catnav">
+  <div class="search-row">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="menuSearch" placeholder="Cari menu, misal: mentai, thai tea, cireng..." autocomplete="off">
+      <button class="search-clear" id="searchClear" style="display:none;">✕</button>
+    </div>
+  </div>
   <div class="catnav-inner" id="catnav">
     <a href="#cat-0">Mentai Series</a>
     <a href="#cat-1">FoodFood</a>
@@ -472,6 +512,11 @@
 </nav>
 
 <main id="menu-root">
+  <div class="no-results" id="noResults" style="display:none;">
+    <span class="nr-icon">🍽️</span>
+    <div class="nr-title">Menu tidak ditemukan</div>
+    <div class="nr-sub">Coba kata kunci lain, misal nama menu atau bahannya.</div>
+  </div>
   <section class="category" id="cat-0">
     <div class="cat-head"><span class="cat-index mono">01</span><h2>Mentai Series</h2><span class="rule"></span></div>
     <div class="grid">
@@ -1565,6 +1610,42 @@ const io = new IntersectionObserver((entries) => {
   });
 }, { rootMargin: "-40% 0px -50% 0px" });
 sections.forEach(s => io.observe(s));
+
+/* ================= SEARCH ================= */
+const searchInput = document.getElementById("menuSearch");
+const searchClear = document.getElementById("searchClear");
+const noResults = document.getElementById("noResults");
+const catNavInner = document.getElementById("catnav");
+
+function performSearch(rawQuery){
+  const q = rawQuery.trim().toLowerCase();
+  searchClear.style.display = q ? "flex" : "none";
+  catNavInner.style.display = q ? "none" : "flex";
+
+  let totalVisible = 0;
+  sections.forEach(section => {
+    let visibleInSection = 0;
+    section.querySelectorAll(".ticket").forEach(card => {
+      const name = (card.dataset.name || "").toLowerCase();
+      const noteEl = card.querySelector(".ticket-note");
+      const note = noteEl ? noteEl.textContent.toLowerCase() : "";
+      const match = !q || name.includes(q) || note.includes(q);
+      card.classList.toggle("hide", !match);
+      if (match) visibleInSection++;
+    });
+    section.classList.toggle("hide", q !== "" && visibleInSection === 0);
+    totalVisible += visibleInSection;
+  });
+
+  noResults.style.display = (q && totalVisible === 0) ? "block" : "none";
+}
+
+searchInput.addEventListener("input", (e) => performSearch(e.target.value));
+searchClear.addEventListener("click", () => {
+  searchInput.value = "";
+  performSearch("");
+  searchInput.focus();
+});
 
 /* ================= CART LOGIC ================= */
 const cartFab = document.getElementById("cartFab");
